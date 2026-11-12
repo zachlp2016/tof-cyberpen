@@ -1,0 +1,35 @@
+# OS
+.DS_Store
+
+# Gunship run artifacts (regenerated per scan)
+runs/
+err.log
+
+# Stray tool caches
+nuclei-templates/
+tof-pentest/nuclei-templates/
+
+# Compiled tool binaries — installed by tools/<tool>/install.sh (`tof-pentest install`,
+# also run during the Docker image build). Kept on disk locally, not committed.
+tools/dnsx/bin/dnsx
+tools/ffuf/bin/ffuf
+tools/grype/bin/grype
+tools/httpx/bin/httpx
+tools/katana/bin/katana
+tools/naabu/bin/naabu
+tools/nuclei/bin/nuclei
+tools/subfinder/bin/subfinder
+tools/syft/bin/syft
+tools/trivy/bin/trivy
+
+# Vendored nuclei templates: only the sets referenced by the manifest (vuln-scan)
+# tools/nuclei/templates/http/{exposures,misconfiguration,technologies}
+tools/nuclei/templates/*
+!tools/nuclei/templates/http/
+tools/nuclei/templates/http/*
+!tools/nuclei/templates/http/exposures/
+!tools/nuclei/templates/http/misconfiguration/
+!tools/nuclei/templates/http/technologies/
+
+# Build scratch
+.tmp-*

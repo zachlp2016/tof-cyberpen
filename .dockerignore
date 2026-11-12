@@ -1,0 +1,11 @@
+.git
+.DS_Store
+err.log
+runs
+nuclei-templates
+projects/.DS_Store
+tof-pentest/nuclei-templates
+tof-pentest/test
+tools/*/bin/*
+tools/*/source
+.tmp-*
