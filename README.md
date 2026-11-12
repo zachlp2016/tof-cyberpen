@@ -23,8 +23,51 @@ Entry point: [projects/penetration/agents.md](projects/penetration/agents.md) �
 
 MCP (preferred interface for agents in other applications):
 
-    server: node tof-pentest/bin/tof-pentest.js mcp   (JSON-RPC over stdio)
-    tools: pentest {ip, port, type}, plan {ip, port, type}, run_tool {tool, ip, port, command}, list_tools, get_report {run}
+### MCP usage
+
+Start the server (JSON-RPC over stdio):
+
+    Local:  node tof-pentest/bin/tof-pentest.js mcp
+    Docker: docker run -i --rm tof-ai-pentester mcp
+
+Register it in any MCP host (Claude Desktop, Cursor, harnesses — standard `mcpServers` config). Docker variant:
+
+    {
+      "mcpServers": {
+        "tof-pentest": {
+          "command": "docker",
+          "args": ["run", "-i", "--rm", "tof-ai-pentester", "mcp"]
+        }
+      }
+    }
+
+Local variant (absolute path to this checkout):
+
+    {
+      "mcpServers": {
+        "tof-pentest": {
+          "command": "node",
+          "args": ["/path/to/TOF-Penetration-Testing/tof-pentest/bin/tof-pentest.js", "mcp"]
+        }
+      }
+    }
+
+Tools and the argument JSON a host sends per call (`arguments` in tools/call — the host wraps it in JSON-RPC automatically):
+
+    pentest      {"ip": "192.168.10.50", "port": "8000", "type": "extensive"}    # omit "port" for discovery mode
+    plan         {"ip": "192.168.10.50", "port": "8000", "type": "basic"}        # exact step sequence, no execution
+    run_tool     {"tool": "nmap", "ip": "192.168.10.50", "port": "8000", "command": ["-Pn", "-p", "{port}", "{ip}"]}
+    list_tools   {}
+    get_report   {"run": "2026-11-12T02-10-00-192.168.10.50-8000"}
+
+`type` is basic | normal | extensive | hack (cumulative tiers). `run_tool` accepts nmap, naabu, nuclei, ffuf, sqlmap, testssl, httpx, katana; placeholders `{ip} {port} {url} {runDir}` are substituted. `get_report` takes a run dir path or the run id under runs/.
+
+Raw JSON-RPC for manual stdio testing without a host (one request per line, in order):
+
+    {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"probe","version":"0"}}}
+    {"jsonrpc":"2.0","method":"notifications/initialized"}
+    {"jsonrpc":"2.0","id":2,"method":"tools/list"}
+    {"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"plan","arguments":{"ip":"192.168.10.50","port":"8000","type":"basic"}}}
 
 ### MCP response contract
 
