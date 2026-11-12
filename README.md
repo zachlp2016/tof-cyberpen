@@ -26,6 +26,25 @@ MCP (preferred interface for agents in other applications):
     server: node tof-pentest/bin/tof-pentest.js mcp   (JSON-RPC over stdio)
     tools: pentest {ip, port, type}, plan {ip, port, type}, run_tool {tool, ip, port, command}, list_tools, get_report {run}
 
+### MCP response contract
+
+Every tool result uses the standard MCP result envelope, uniformly:
+
+    result.content[0].text          human-readable summary (works in any client)
+    result.structuredContent        machine-readable payload (declared per tool)
+    result.isError                  true when the run/target did not come up clean
+
+Each tool declares its `structuredContent` shape as `outputSchema` in tools/list, so any MCP host (harnesses, Claude Desktop, Cursor, SDK clients) can introspect and validate packets. The payload contract for `pentest`/`get_report`:
+
+    runDir, target {ip, port, url, mode}, tier, mode (focus|discovery), hostUp,
+    summary {runDir, tier, mode, ip, port, findingsCount, openPortCount, vulnCount, stepsRun, generatedAt},
+    portTargeting {mode, cap, webTargets, webSkipped, deepScanned},
+    reportMd, reportJson, openPorts [{port, protocol, service, product, version, state, extrainfo, deepTarget, sourceStep}],
+    findings {vulnerabilities, techStack, webPaths, urls, sqli, tls, tlsIssues, osGuesses, nmapScripts},
+    steps [{id, tool, status, exitCode, outFile, errFile, startedAt, finishedAt, durationSec, cmd, reason, raw {stdout, stderr, stdoutTruncated, stderrTruncated}}]
+
+`raw` embeds each executed step's tool output (capped at 250KB stdout / 16KB stderr; full output stays in the run directory). Selftest gates enforce that emitted payloads stay within the declared schemas.
+
 ## Tiers (cumulative)
 
 basic -> normal -> extensive -> hack. Each tier adds tools: reconnaissance (nmap), then full-scan/OS/NSE, then HTTP probe + nuclei vuln scan + TLS test, then ffuf dir enum + katana crawl + sqlmap + Nmap vuln suite. See `tof-pentest/src/manifest.json` for the exact per-step commands.
@@ -46,6 +65,6 @@ basic -> normal -> extensive -> hack. Each tier adds tools: reconnaissance (nmap
 
 ## Development
 
-- `node tof-pentest/bin/tof-pentest.js selftest` — 10 checks: manifest integrity, wordlist, parsers (nmap/ffuf/testssl/sqlmap), live MCP handshake (initialize, tools/list, plan call).
+- `node tof-pentest/bin/tof-pentest.js selftest` — 18 gates: manifest integrity, wordlist, parsers (nmap/ffuf/testssl/sqlmap), live MCP handshake (initialize, tools/list, plan call), uniform response envelope, outputSchema contract compliance, runData raw-packet embedding.
 - Tier plan is data: edit `tof-pentest/src/manifest.json` to add steps or tiers; selftest verifies referential integrity and cumulative ordering.
 - Parsers live in `tof-pentest/src/parsers.js` (nmap XML + text, JSONL, ffuf, testssl, katana, sqlmap).
